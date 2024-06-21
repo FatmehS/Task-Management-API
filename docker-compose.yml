@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./backend
+    command: sh -c "./wait-for-postgres.sh db && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: task_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: task_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d task_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
